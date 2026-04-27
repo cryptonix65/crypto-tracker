@@ -1,33 +1,33 @@
 name: Crypto Price Update
-
 on:
   schedule:
-    - cron: '0 6,12,18,0 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Fetch crypto prices
+      - name: Fetch BTC price
         run: |
           DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
-          PRICES=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin&vs_currencies=usd&include_24hr_change=true")
-          ETH=$(echo $PRICES | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['ethereum']['usd'])")
-          ETH_CH=$(echo $PRICES | python3 -c "import sys,json; d=json.load(sys.stdin); print(round(d['ethereum']['usd_24h_change'],2))")
-          BTC=$(echo $PRICES | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['bitcoin']['usd'])")
-          BTC_CH=$(echo $PRICES | python3 -c "import sys,json; d=json.load(sys.stdin); print(round(d['bitcoin']['usd_24h_change'],2))")
-          echo "| $DATE | ETH: \$$ETH (${ETH_CH}%) | BTC: \$$BTC (${BTC_CH}%) |" >> prices.md
-
-      - name: Commit & push
+          BTC=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true" | python3 -c "
+          import sys, json
+          try:
+              d = json.load(sys.stdin)
+              price = d['bitcoin']['usd']
+              change = round(d['bitcoin']['usd_24h_change'], 2)
+              print(f'{price} ({change}%)')
+          except:
+              print('N/A')
+          ")
+          echo "| $DATE | BTC: \$$BTC |" >> prices.md
+      - name: Commit
         run: |
           git config user.email "actions@github.com"
           git config user.name "github-actions[bot]"
           git add .
-          git commit -m "price update: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git commit -m "btc: $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
